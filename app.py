@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+# --- Define Model Architecture ---
+# This MUST be the same architecture as the one you trained.
 latent_dim = 100
 num_classes = 10
 embedding_dim = 100
@@ -34,12 +36,14 @@ class Generator(nn.Module):
         gen_input = torch.cat((noise, lbl_embedding), dim=1)
         return self.net(gen_input)
 
+# --- Streamlit App ---
 
 st.set_page_config(layout="wide", page_title="Conditional GAN Digit Generator")
 
 st.title("Handwritten Digit Generator using cGAN")
 st.write("This app uses a Conditional Generative Adversarial Network (cGAN) to generate handwritten digits. Select a digit and click the button to see 5 unique variations.")
 
+# Use st.cache_resource to load the model only once
 @st.cache_resource
 def load_model():
     device = torch.device("cpu")
@@ -51,6 +55,7 @@ def load_model():
 generator = load_model()
 device = torch.device("cpu")
 
+# --- UI Elements ---
 with st.sidebar:
     st.header("Controls")
     selected_digit = st.selectbox(
@@ -64,9 +69,9 @@ with st.sidebar:
     st.write("Developed based on a PyTorch cGAN model.")
 
 
+# --- Generation Logic ---
 if generate_button:
     num_variations = 5
-
     st.subheader(f"Generated {num_variations} Variations for Digit: {selected_digit}")
 
     with st.spinner(f"Generating {num_variations} images..."):
@@ -82,7 +87,11 @@ if generate_button:
         for i, col in enumerate(cols):
             with col:
                 img_tensor = generated_images[i]
-                img_np = img_tensor.cpu().numpy()
+                
+                # ***** THE FIX IS HERE *****
+                # Squeeze the tensor to remove the channel dimension of size 1
+                img_np = img_tensor.squeeze().cpu().numpy() 
+                
                 st.image(
                     img_np,
                     caption=f"Variation {i+1}",
