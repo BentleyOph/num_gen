@@ -2,8 +2,6 @@ import streamlit as st
 import torch
 import torch.nn as nn
 import numpy as np
-from torchvision.utils import make_grid
-
 
 latent_dim = 100
 num_classes = 10
@@ -36,22 +34,18 @@ class Generator(nn.Module):
         gen_input = torch.cat((noise, lbl_embedding), dim=1)
         return self.net(gen_input)
 
-# --- Streamlit App ---
 
 st.set_page_config(layout="wide", page_title="Conditional GAN Digit Generator")
 
 st.title("Handwritten Digit Generator using cGAN")
-st.write("This app uses a Conditional Generative Adversarial Network (cGAN) trained on the MNIST dataset to generate handwritten digits. Select a digit and click 'Generate'!")
+st.write("This app uses a Conditional Generative Adversarial Network (cGAN) to generate handwritten digits. Select a digit and click the button to see 5 unique variations.")
 
-# Use st.cache_resource to load the model only once
 @st.cache_resource
 def load_model():
-    # We run this on CPU as it's fast enough for inference
     device = torch.device("cpu")
     model = Generator().to(device)
-    # Load the trained weights
     model.load_state_dict(torch.load('cgan_generator.pth', map_location=device))
-    model.eval()  # Set the model to evaluation mode
+    model.eval()
     return model
 
 generator = load_model()
@@ -64,34 +58,35 @@ with st.sidebar:
         options=list(range(10))
     )
 
-    generate_button = st.button("Generate Image", type="primary")
+    generate_button = st.button("Generate 5 Images", type="primary")
 
     st.markdown("---")
     st.write("Developed based on a PyTorch cGAN model.")
 
 
 if generate_button:
-    st.subheader(f"Generated Image for Digit: {selected_digit}")
+    num_variations = 5
 
-    with st.spinner("Generating..."):
-        # 1. Prepare inputs for the generator
-        # Create the noise vector
-        noise = torch.randn(1, latent_dim, 1, 1, device=device)
-        # Create the label tensor for the selected digit
-        label = torch.LongTensor([selected_digit]).to(device)
+    st.subheader(f"Generated {num_variations} Variations for Digit: {selected_digit}")
 
-        # 2. Generate the image
+    with st.spinner(f"Generating {num_variations} images..."):
+        noise = torch.randn(num_variations, latent_dim, 1, 1, device=device)
+        labels = torch.LongTensor([selected_digit] * num_variations).to(device)
+
         with torch.no_grad():
-            generated_image_tensor = generator(noise, label)
+            generated_images_tensor = generator(noise, labels)
 
-        # 3. Post-process the tensor to display it
-        # The generator's output is in the range [-1, 1], so we need to normalize it to [0, 1] for display
-        generated_image = (generated_image_tensor * 0.5) + 0.5
-        # Squeeze the batch dimension and convert to numpy for display
-        img_np = generated_image.squeeze().cpu().numpy()
+        generated_images = (generated_images_tensor * 0.5) + 0.5
 
-        # Display the image
-        st.image(img_np, caption=f"Generated Digit: {selected_digit}", width=256)
-
+        cols = st.columns(num_variations)
+        for i, col in enumerate(cols):
+            with col:
+                img_tensor = generated_images[i]
+                img_np = img_tensor.cpu().numpy()
+                st.image(
+                    img_np,
+                    caption=f"Variation {i+1}",
+                    use_column_width=True
+                )
 else:
-    st.info("Select a digit from the sidebar and click 'Generate'.")
+    st.info("Select a digit from the sidebar and click 'Generate 5 Images'.")
