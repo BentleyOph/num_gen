@@ -57,7 +57,6 @@ def load_model():
 generator = load_model()
 device = torch.device("cpu")
 
-# --- UI Elements ---
 with st.sidebar:
     st.header("Controls")
     selected_digit = st.selectbox(
@@ -71,7 +70,6 @@ with st.sidebar:
     st.write("Developed based on a PyTorch cGAN model.")
 
 
-# --- Generation Logic ---
 if generate_button:
     st.subheader(f"Generated Image for Digit: {selected_digit}")
 
